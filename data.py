@@ -106,3 +106,71 @@ class ANLIDataWrapper(Dataset):
     K = len(self.options)
 
     return inp, tgt, K
+
+
+class LEDGARDataWrapper(Dataset):
+    def __init__(self, data, tokenizer):
+        self.data = data
+        self.tokenizer = tokenizer
+        self.all_opts = self.data.features["label"].names
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        row = self.preprocess_ledgar(self.data[index])
+
+        context = row["text"]
+        question = row["question"]
+        choices = row["options"]
+        correct = row["label"]
+
+        random.shuffle(choices)
+
+        inp = prepare_ids(self.tokenizer, context, question, choices)
+        tgt = choices.index(correct)
+        K = len(choices)
+
+        return inp, tgt, K
+
+    def preprocess_ledgar(self, row):
+        K = random.randint(3, len(LETTERS) - 1)
+
+        label = self.all_opts[row["label"]]
+        question = "Classify the following statement."
+        others = [option for option in self.all_opts if option != label]
+        options = random.sample(others, k=K)
+        options += [label]
+        label = options[-1]
+
+        return {
+            "text": row["text"],
+            "question": question,
+            "options": options,
+            "label": label
+        }
+
+
+class CASEHOLDDataWrapper(Dataset):
+  def __init__(self, data, tokenizer):
+    self.data = data
+    self.tokenizer = tokenizer
+
+  def __len__(self):
+    return len(self.data)
+
+  def __getitem__(self, index):
+    row = self.data[index]
+    label_idx = row["label"]
+    context = row["context"]
+    question = "Which holding correctly fills the <HOLDING> placeholder in the text?"
+    choices = row["endings"]
+    correct = choices[label_idx]
+
+    random.shuffle(choices)
+
+    inp = prepare_ids(self.tokenizer, context, question, choices)
+    tgt = choices.index(correct)
+    K = len(choices)
+
+    return inp, tgt, K
