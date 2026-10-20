@@ -2,7 +2,6 @@ from torch.utils.data import Dataset
 import random
 import json
 from .prompt import prepare_ids
-from .consts import LETTERS
 
 class JEVDataWrapper(Dataset):
   def __init__(self, data, tokenizer, is_context_json=False):

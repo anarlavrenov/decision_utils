@@ -1,3 +1,5 @@
+from .consts import LETTERS
+
 def prepare_ids(
         tokenizer,
         context: str,
