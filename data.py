@@ -1,5 +1,6 @@
 from torch.utils.data import Dataset
 import random
+from prompt import prepare_ids
 
 class JEVDataWrapper(Dataset):
   def __init__(self, data, is_context_json=False):
