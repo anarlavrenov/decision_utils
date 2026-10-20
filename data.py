@@ -1,10 +1,11 @@
 from torch.utils.data import Dataset
 import random
-from prompt import prepare_ids
+from .prompt import prepare_ids
 
 class JEVDataWrapper(Dataset):
-  def __init__(self, data, is_context_json=False):
+  def __init__(self, data, tokenizer, is_context_json=False):
     self.data = data
+    self.tokenizer = tokenizer
     self.is_context_json = is_context_json
 
   def __len__(self):
@@ -22,7 +23,7 @@ class JEVDataWrapper(Dataset):
 
     random.shuffle(choices)
 
-    inp = prepare_ids(context, question, choices)
+    inp = prepare_ids(self.tokenizer, context, question, choices)
     tgt = choices.index(correct)
     K = len(choices)
 
@@ -30,8 +31,9 @@ class JEVDataWrapper(Dataset):
 
 
 class SCIQDataWrapper(Dataset):
-  def __init__(self, data):
+  def __init__(self, data, tokenizer):
     self.data = data
+    self.tokenizer = tokenizer
 
   def __len__(self):
     return len(self.data)
@@ -45,7 +47,7 @@ class SCIQDataWrapper(Dataset):
 
     random.shuffle(choices)
 
-    inp = prepare_ids(context, question, choices)
+    inp = prepare_ids(self.tokenizer, context, question, choices)
     tgt = choices.index(correct)
     K = len(choices)
 
@@ -53,8 +55,9 @@ class SCIQDataWrapper(Dataset):
 
 
 class MMLUDataWrapper(Dataset):
-  def __init__(self, data):
+  def __init__(self, data, tokenizer):
     self.data = data
+    self.tokenizer = tokenizer
     self.context = ""
     self.question_prefix = "Choose the correct answer to the question.\n"
 
@@ -69,15 +72,16 @@ class MMLUDataWrapper(Dataset):
 
     random.shuffle(choices)
 
-    inp = prepare_ids(self.context, question, choices)
+    inp = prepare_ids(self.tokenizer, self.context, question, choices)
     tgt = choices.index(correct)
     K = len(choices)
 
     return inp, tgt, K
 
 class ANLIDataWrapper(Dataset):
-  def __init__(self, data):
+  def __init__(self, data, tokenizer):
     self.data = data
+    self.tokenizer = tokenizer
     self.context = ""
     self.options = ["entailment", "neutral", "contradiction"]
     self.question_prefix = "Classify the relationship between the premise and hypothesis.\n"
@@ -96,7 +100,7 @@ class ANLIDataWrapper(Dataset):
 
     random.shuffle(options)
 
-    inp = prepare_ids(self.context, question, options)
+    inp = prepare_ids(self.tokenizer, self.context, question, options)
     tgt = options.index(correct)
     K = len(self.options)
 
