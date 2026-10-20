@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import random
 import json
 from .prompt import prepare_ids
-from .consts import LETTERS
+from .consts import LETTERS, LEDGAR_CLASS_DESCRIPTIONS
 
 class JEVDataWrapper(Dataset):
   def __init__(self, data, tokenizer, is_context_json=False):
@@ -80,33 +80,43 @@ class MMLUDataWrapper(Dataset):
 
     return inp, tgt, K
 
+
 class ANLIDataWrapper(Dataset):
-  def __init__(self, data, tokenizer):
-    self.data = data
-    self.tokenizer = tokenizer
-    self.context = ""
-    self.options = ["entailment", "neutral", "contradiction"]
-    self.question_prefix = "Classify the relationship between the premise and hypothesis.\n"
+    def __init__(self, data, tokenizer):
+        self.data = data
+        self.tokenizer = tokenizer
+        self.context = ""
+        self.options = ["entailment", "neutral", "contradiction"]
+        self.options_desc = {
+            "entailment": "The hypothesis must be true if the premise is true",
+            "neutral": "The hypothesis may or may not be true given the premise",
+            "contradiction": "The hypothesis cannot be true if the premise is true"
+        }
+        self.question_prefix = "Classify the relationship between the premise and hypothesis.\n"
 
-  def __len__(self):
-    return len(self.data)
+    def __len__(self):
+        return len(self.data)
 
-  def __getitem__(self, index):
-    row = self.data[index]
-    premise = row["premise"]
-    hypothesis = row["hypothesis"]
-    question = self.question_prefix + "Premise: " + premise + "\n" + "Hypothesis: " + hypothesis
-    correct = self.options[row["label"]]
+    def __getitem__(self, index):
+        row = self.data[index]
+        premise = row["premise"]
+        hypothesis = row["hypothesis"]
+        question = self.question_prefix + "Premise: " + premise + "\n" + "Hypothesis: " + hypothesis
+        correct = self.options[row["label"]]
 
-    options = self.options[:]
+        keys = self.options[:]
+        random.shuffle(keys)
 
-    random.shuffle(options)
+        if random.random() < 0.5:
+            options = {k: self.options_desc[k] for k in keys}
+            inp = prepare_ids(self.tokenizer, self.context, question, options, options_desc=True)
+        else:
+            inp = prepare_ids(self.tokenizer, self.context, question, keys)
 
-    inp = prepare_ids(self.tokenizer, self.context, question, options)
-    tgt = options.index(correct)
-    K = len(self.options)
+        tgt = keys.index(correct)
+        K = len(self.options)
 
-    return inp, tgt, K
+        return inp, tgt, K
 
 
 class LEDGARDataWrapper(Dataset):
@@ -127,9 +137,14 @@ class LEDGARDataWrapper(Dataset):
         correct = row["label"]
 
         random.shuffle(choices)
-
-        inp = prepare_ids(self.tokenizer, context, question, choices)
         tgt = choices.index(correct)
+
+        if random.random() < 0.5:
+          choices = {k: LEDGAR_CLASS_DESCRIPTIONS[k] for k in choices}
+          inp = prepare_ids(self.tokenizer, context, question, choices, options_desc=True)
+        else:
+          inp = prepare_ids(self.tokenizer, context, question, choices)
+
         K = len(choices)
 
         return inp, tgt, K
@@ -138,7 +153,7 @@ class LEDGARDataWrapper(Dataset):
         K = random.randint(3, len(LETTERS) - 1)
 
         label = self.all_opts[row["label"]]
-        question = "Classify the following statement."
+        question = "Which type of contract provision is this text?"
         others = [option for option in self.all_opts if option != label]
         options = random.sample(others, k=K)
         options += [label]
