@@ -47,3 +47,17 @@ def apply_lora(model, rank, alpha, dropout=0.0):
             parent_name, child_name = name.rsplit(".", 1)
             parent = model.get_submodule(parent_name)
             setattr(parent, child_name, LoRALinear(module, rank=rank, alpha=alpha))
+
+
+@torch.no_grad()
+def merge_lora(model):
+    for name, module in list(model.named_modules()):
+        if isinstance(module, LoRALinear):
+            scale = module.alpha / module.rank
+            delta = module.lora_a.weight.T.float() @ module.lora_b.weight.T.float() * scale
+            module.base.weight += delta.T.to(module.base.weight.dtype)
+
+            parent_name, child_name = name.rsplit(".", 1)
+            setattr(model.get_submodule(parent_name), child_name, module.base)
+
+    return model
