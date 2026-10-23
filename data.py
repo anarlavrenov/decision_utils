@@ -198,9 +198,9 @@ class NLIDataWrapper(Dataset):
         self.tokenizer = tokenizer
         self.options = data.features["label"].names
         self.options_desc = {
-            "entailment": "The hypothesis must be true if the premise is true",
-            "neutral": "The hypothesis may or may not be true given the premise",
-            "contradiction": "The hypothesis cannot be true if the premise is true"
+            "entailment": "The contract implies the statement",
+            "neutral": "The contract does not address the statement",
+            "contradiction": "The contract contradicts the statement"
         }
         self.question_prefix = "Does the contract support the following statement?"
 
@@ -211,7 +211,7 @@ class NLIDataWrapper(Dataset):
         row = self.data[index]
         context = row["premise"]
         hypothesis = row["hypothesis"]
-        question = self.question_prefix + "\n" + "Hypothesis: " + hypothesis
+        question = self.question_prefix + "\n" + "Statement: " + hypothesis
         correct = self.options[row["label"]]
 
         keys = self.options[:]
@@ -225,5 +225,31 @@ class NLIDataWrapper(Dataset):
 
         tgt = keys.index(correct)
         K = len(self.options)
+
+        return inp, tgt, K
+
+class HELLASWAGDataWrapper(Dataset):
+    def __init__(self, data, tokenizer):
+        super().__init__()
+
+        self.data = data
+        self.tokenizer = tokenizer
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        row = self.data[index]
+        label = int(row["label"])
+        context = row["ctx"]
+        question = "Which continuation is most plausible?"
+        choices = row["endings"]
+        correct = choices[label]
+
+        random.shuffle(choices)
+
+        inp = prepare_ids(self.tokenizer, context, question, choices)
+        tgt = choices.index(correct)
+        K = len(choices)
 
         return inp, tgt, K
