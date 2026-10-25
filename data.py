@@ -4,8 +4,8 @@ import random
 import torch
 from torch.utils.data import Dataset
 
-from consts import LEDGAR_CLASS_DESCRIPTIONS, LETTERS, PAD_ID, SEED
-from prompt import prepare_ids
+from .consts import LEDGAR_CLASS_DESCRIPTIONS, LETTERS, PAD_ID, SEED
+from .prompt import prepare_ids
 
 
 class JEVDataWrapper(Dataset):
