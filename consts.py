@@ -1,5 +1,44 @@
 import string
 
+CHECKPOINT = "Qwen/Qwen3.8-27B"
+HF_REPO_SAVE_PATH = "anarlavrenov/Decision-Qwen3.8-27B"
+MODAL_APP_NAME = "decision-qwen-27b"
+CHECKPOINT_DIR = "/checkpoints"
+GRAD_ACCUM_STEPS = 4
+BATCH_SIZE = 8
+N_EPOCHS = 1
+N_TRAIN_SAMPLES_PER_DATASET = 50_000
+N_TRAIN_SAMPLES_JEV_PER_DATASET = 150_000
+N_VALID_SAMPLES_PER_DATASET = 300
+MAX_CHARS = 16000
+PAD_ID = 248044
+LORA_RANK = 16
+LORA_ALPHA = 32
+LEARNING_RATE = 2e-4
+LR_PERCENTAGE_START = 0.1
+LOG_EVERY_TRAIN = 1000
+LOG_EVERY_VALID = 5000
+SEED = 0
+
+# HF Datasets names.
+HF_JEV_TYPED_DECISION_PATH = "tasksource/tasksource-jev-typed-decisions"
+HF_OPEN_JEV_PATH = "ZefanCai/Open-Jev-v1.1"
+HF_LEDGAR_PATH = "coastalcph/lex_glue"
+HF_LEDGAR_SUBSET_NAME = "ledgar"
+HF_CASEHOLD_SUBSET_NAME = "case_hold"
+HF_NLI_PATH = "kiddothe2b/contract-nli"
+HF_NLI_REVISION_NAME = "refs/convert/parquet"
+HF_ANLI_PATH = "facebook/anli"
+HF_ANLI_SPLIT_NAME = "train_r1"
+HF_MMLU_PATH = "cais/mmlu"
+HF_MMLU_SUBSET_NAME = "auxiliary_train"
+HF_SCIQ_PATH = "allenai/sciq"
+HF_HELLASWAG_PATH = "Rowan/hellaswag"
+HF_VITAMIN_PATH = "tals/vitaminc"
+
+TRAIN_SPLIT_NAME = "train"
+VAL_SPLIT_NAME = "validation"
+
 LETTERS = string.ascii_uppercase
 LEDGAR_CLASS_DESCRIPTIONS = {
     "Adjustments": "Specifies how contract amounts, prices, or other terms may be recalculated.",
@@ -101,5 +140,5 @@ LEDGAR_CLASS_DESCRIPTIONS = {
     "Waiver Of Jury Trials": "Records an agreement to resolve legal disputes without a jury trial.",
     "Waivers": "Specifies contractual rights, demands, or procedural protections voluntarily relinquished.",
     "Warranties": "Provides contractual assurances concerning the condition, quality, or accuracy of specified matters.",
-    "Withholdings": "Governs amounts deducted or withheld from payments under the agreement."
+    "Withholdings": "Governs amounts deducted or withheld from payments under the agreement.",
 }

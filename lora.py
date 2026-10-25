@@ -1,16 +1,11 @@
+import math
+
 import torch
 from torch import nn
-import math
 
 
 class LoRALinear(nn.Module):
-    def __init__(
-            self,
-            base: nn.Linear,
-            rank: int,
-            alpha: float,
-            dropout: float = 0.0
-    ):
+    def __init__(self, base: nn.Linear, rank: int, alpha: float, dropout: float = 0.0):
         super().__init__()
 
         self.base = base
@@ -54,7 +49,9 @@ def merge_lora(model):
     for name, module in list(model.named_modules()):
         if isinstance(module, LoRALinear):
             scale = module.alpha / module.rank
-            delta = module.lora_a.weight.T.float() @ module.lora_b.weight.T.float() * scale
+            delta = (
+                module.lora_a.weight.T.float() @ module.lora_b.weight.T.float() * scale
+            )
             module.base.weight += delta.T.to(module.base.weight.dtype)
 
             parent_name, child_name = name.rsplit(".", 1)
