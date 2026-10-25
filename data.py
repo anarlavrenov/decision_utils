@@ -336,6 +336,43 @@ def collate_fn(batch):
     return tokens_padded, attention_mask, labels, K
 
 
+class ONEJEVDataWrapper(Dataset):
+    def __init__(self, data, tokenizer):
+        self.data = data
+        self.tokenizer = tokenizer
+        self.yes_no = {"yes": "true", "no": "false"}
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        row = self.data[index]
+
+        context = json.dumps(json.loads(row["state"]), indent=2, ensure_ascii=False)
+        q = json.loads(row["question"])
+        question = q["instructions"]
+        options = q["criteria"]
+        target = json.loads(row["target"])
+
+        gold = max(target, key=target.get)
+        if gold not in options:
+            gold = self.yes_no[gold]
+
+        keys = list(options)
+        random.shuffle(keys)
+
+        if random.random() < 0.5:
+            opts = {k: options[k] for k in keys}
+            inp = prepare_ids(self.tokenizer, context, question, opts, options_desc=True)
+        else:
+            inp = prepare_ids(self.tokenizer, context, question, keys)
+
+        tgt = keys.index(gold)
+        K = len(options)
+
+        return inp, tgt, K
+
+
 def filter_jev(ds, state_col: str, max_len: int):
     return ds.filter(
         lambda r: (
