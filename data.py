@@ -4,8 +4,8 @@ import random
 import torch
 from torch.utils.data import Dataset
 
-from .consts import LEDGAR_CLASS_DESCRIPTIONS, LETTERS, PAD_ID, SEED
-from .prompt import prepare_ids
+from consts import LEDGAR_CLASS_DESCRIPTIONS, ONE_JEV_MAX_CHARS, LETTERS, PAD_ID, SEED
+from prompt import prepare_ids
 
 
 class JEVDataWrapper(Dataset):
@@ -363,7 +363,9 @@ class ONEJEVDataWrapper(Dataset):
 
         if random.random() < 0.5:
             opts = {k: options[k] for k in keys}
-            inp = prepare_ids(self.tokenizer, context, question, opts, options_desc=True)
+            inp = prepare_ids(
+                self.tokenizer, context, question, opts, options_desc=True
+            )
         else:
             inp = prepare_ids(self.tokenizer, context, question, keys)
 
@@ -373,10 +375,28 @@ class ONEJEVDataWrapper(Dataset):
         return inp, tgt, K
 
 
-def filter_jev(ds, state_col: str, max_len: int):
+def filter_one_jev(row):
+    if row["media"]:
+        return False
+    if row["teacher"] not in (None, "None"):
+        return False
+    if len(row["state"]) > ONE_JEV_MAX_CHARS:
+        return False
+    q = json.loads(row["question"])
+    if len(q["criteria"]) > len(LETTERS):
+        return False
+    if q["type"] == "score":
+        return False
+    target = json.loads(row["target"])
+    if max(target.values()) != 1.0:
+        return False
+    return True
+
+
+def filter_jev(ds, state_col: str, max_len: int, kinds=("choice",)):
     return ds.filter(
         lambda r: (
-            r["kind"] == "choice"
+            r["kind"] in kinds
             and len(r["options"]) <= len(LETTERS)
             and max(r["target"]) == 1.0
             and len(set(r["options"])) == len(r["options"])

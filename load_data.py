@@ -14,6 +14,8 @@ from consts import (
     HF_VITAMIN_PATH,
     HF_NLI_REVISION_NAME,
     HF_OPEN_JEV_PATH,
+    HF_ONEJEV_PATH,
+    ONEJEV_ALLOWED_COLUMNS,
     HF_SCIQ_PATH,
     MAX_CHARS,
     N_TRAIN_SAMPLES_JEV_PER_DATASET,
@@ -22,7 +24,7 @@ from consts import (
     TRAIN_SPLIT_NAME,
     VAL_SPLIT_NAME,
 )
-from data import ds_sample, filter_jev
+from data import ds_sample, filter_jev, filter_one_jev
 
 
 def load_train():
@@ -55,6 +57,7 @@ def load_train():
             load_dataset(HF_OPEN_JEV_PATH, split=TRAIN_SPLIT_NAME),
             "state_json",
             MAX_CHARS,
+            ("choice", "noul"),
         ),
         N_TRAIN_SAMPLES_JEV_PER_DATASET,
     )
@@ -74,11 +77,14 @@ def load_train():
     )
 
     data_vitamin_train = ds_sample(
-        load_dataset(
-            HF_VITAMIN_PATH, split=TRAIN_SPLIT_NAME
-        ),
+        load_dataset(HF_VITAMIN_PATH, split=TRAIN_SPLIT_NAME),
         N_TRAIN_SAMPLES_PER_DATASET,
     )
+
+    data_onejev_train = load_dataset(
+        HF_ONEJEV_PATH, split=TRAIN_SPLIT_NAME, columns=ONEJEV_ALLOWED_COLUMNS
+    )
+    data_onejev_train = data_onejev_train.filter(filter_one_jev)
 
     data_mmlu_train = data_mmlu_train.filter(
         lambda r: len(set(r["train"]["choices"])) == len(r["train"]["choices"])
@@ -97,7 +103,9 @@ def load_train():
         )
     )
     data_nli_train = data_nli_train.filter(lambda r: len(r["premise"]) < MAX_CHARS)
-    data_vitamin_train = data_vitamin_train.filter(lambda r: len(r["evidence"]) < MAX_CHARS)
+    data_vitamin_train = data_vitamin_train.filter(
+        lambda r: len(r["evidence"]) < MAX_CHARS
+    )
 
     return (
         data_anli_train,
@@ -110,6 +118,7 @@ def load_train():
         data_casehold_train,
         data_nli_train,
         data_vitamin_train,
+        data_onejev_train,
     )
 
 

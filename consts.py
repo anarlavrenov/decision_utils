@@ -11,6 +11,7 @@ N_TRAIN_SAMPLES_PER_DATASET = 50_000
 N_TRAIN_SAMPLES_JEV_PER_DATASET = 150_000
 N_VALID_SAMPLES_PER_DATASET = 300
 MAX_CHARS = 16000
+ONE_JEV_MAX_CHARS = 32000
 PAD_ID = 248044
 LORA_RANK = 16
 LORA_ALPHA = 32
@@ -35,6 +36,8 @@ HF_MMLU_SUBSET_NAME = "auxiliary_train"
 HF_SCIQ_PATH = "allenai/sciq"
 HF_HELLASWAG_PATH = "Rowan/hellaswag"
 HF_VITAMIN_PATH = "tals/vitaminc"
+HF_ONEJEV_PATH = "OmniJev/OneJev-Data"
+ONEJEV_ALLOWED_COLUMNS = ["source", "teacher", "state", "question", "target", "media"]
 
 TRAIN_SPLIT_NAME = "train"
 VAL_SPLIT_NAME = "validation"
