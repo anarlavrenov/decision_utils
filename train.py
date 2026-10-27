@@ -219,6 +219,7 @@ def train(
     model.train()
     optimizer.zero_grad()
     total_loss = 0
+    n_ok = 0
     is_main = dist.get_rank() == 0
 
     iterator = tqdm(train_loader) if is_main else train_loader
@@ -244,16 +245,27 @@ def train(
             loss.backward()
 
         if is_main:
-            total_loss += loss_raw.item()
+            if torch.isfinite(loss_raw):
+                total_loss += loss_raw.item()
+                n_ok += 1
+            else:
+                print(
+                    f"Step {step + 1}: loss={loss_raw.item()} | K={K.tolist()} "
+                    f"| labels={labels.tolist()} | seq_len={tokens_padded.shape[1]}"
+                )
 
         if sync_now:
-            nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
+            grad_norm = nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            if torch.isfinite(grad_norm):
+                optimizer.step()
+            elif is_main:
+                print(f"Step {step + 1}: non-finite grad_norm, optimizer step skipped.")
             scheduler.step()
             optimizer.zero_grad()
 
+
         if is_main and (step + 1) % LOG_EVERY_TRAIN == 0:
-            print(f"Step: {step + 1} | train_loss: {total_loss / (step + 1)}")
+            print(f"Step: {step + 1} | train_loss: {total_loss / max(n_ok, 1)}")
 
         if (step + 1) % LOG_EVERY_VALID == 0:
             if is_main:
@@ -344,15 +356,15 @@ def launch_training():
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install(
-        "torch",
-        "transformers",
-        "datasets",
+        "torch==2.11.0",
+        "transformers==5.20.2",
+        "datasets==4.8.5",
         "accelerate",
         "tqdm",
         "huggingface_hub",
-        "flash-linear-attention",
+        "flash-linear-attention==0.6.0",
     )
-    .env({"TOKENIZERS_PARALLELISM": "false", "PYTHONUNBUFFERED": "1"})
+    .env({"TOKENIZERS_PARALLELISM": "false", "PYTHONUNBUFFERED": "1", "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})
     .add_local_python_source("consts", "data", "load_data", "lora", "prompt", "train")
 )
 

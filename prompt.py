@@ -1,4 +1,4 @@
-from consts import LETTERS
+from .consts import LETTERS
 
 
 def prepare_ids(
