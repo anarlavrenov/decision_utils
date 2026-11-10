@@ -7,6 +7,7 @@ def prepare_ids(
     question: str,
     options: dict | list,
     options_desc: bool = False,
+    add_think_token: bool = False,
 ):
     keys = list(options)
     assert len(keys) <= len(LETTERS), f"Number of options is more than {len(LETTERS)}"
@@ -36,7 +37,7 @@ def prepare_ids(
         messages,
         tokenize=True,
         add_generation_prompt=True,
-        enable_thinking=False,
+        enable_thinking=add_think_token,
         return_tensors="pt",
     )["input_ids"][0]
 
