@@ -8,6 +8,7 @@ def prepare_ids(
     options: dict | list,
     options_desc: bool = False,
     add_think_token: bool = False,
+    instruction: str = "Answer with a single letter.",
 ):
     keys = list(options)
     assert len(keys) <= len(LETTERS), f"Number of options is more than {len(LETTERS)}"
@@ -27,8 +28,8 @@ def prepare_ids(
             "content": (
                 f"Context: {context}\n\n"
                 f"Question: {question}\n\n"
-                f"Options: \n{options_text}\n\n"
-                "Answer with a single letter."
+                f"Options: \n{options_text}"
+                + (f"\n\n{instruction}" if instruction else "")
             ),
         }
     ]
