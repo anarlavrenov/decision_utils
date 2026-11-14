@@ -41,7 +41,7 @@ def apply_lora(model, rank, alpha, dropout=0.0):
         if isinstance(module, nn.Linear) and name.split(".")[-1] not in EXCLUDE:
             parent_name, child_name = name.rsplit(".", 1)
             parent = model.get_submodule(parent_name)
-            setattr(parent, child_name, LoRALinear(module, rank=rank, alpha=alpha))
+            setattr(parent, child_name, LoRALinear(module, rank=rank, alpha=alpha, dropout=dropout))
 
 
 @torch.no_grad()
