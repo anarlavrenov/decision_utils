@@ -491,9 +491,9 @@ def filter_jev(ds, state_col: str, max_len: int, kinds=("choice",)):
     )
 
 
-def balance_proof_data(ds, seed=0):
+def balance_proof_data(ds, min_depth, max_depth, seed=0):
     ds = ds.filter(lambda x: "OWA" in x["id"])
-    ds = ds.filter(lambda x: 2 <= x["QDep"] < 6)
+    ds = ds.filter(lambda x: min_depth <= x["QDep"] < max_depth)
     unique_values = ds.unique("QDep")
     co = Counter(ds["QDep"])
     min_count = min(v for v in co.values())
