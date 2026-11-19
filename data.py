@@ -4,8 +4,12 @@ import random
 import torch
 from torch.utils.data import Dataset
 
+from datasets import concatenate_datasets
+from collections import Counter
+
 from .consts import LEDGAR_CLASS_DESCRIPTIONS, ONE_JEV_MAX_CHARS, LETTERS, PAD_ID, SEED
 from .prompt import prepare_ids
+import ast
 
 
 class JEVDataWrapper(Dataset):
@@ -375,6 +379,88 @@ class ONEJEVDataWrapper(Dataset):
         return inp, tgt, K
 
 
+
+class PROOFDataWrapper(Dataset):
+    def __init__(self, data, tokenizer):
+        self.data = data
+        self.tokenizer = tokenizer
+        self.choices = ["True", "False", "Unknown"]
+        self.question_prefix = "Based on the facts and rules classify the following statement:"
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        row = self.data[index]
+        context = row["theory"]
+        question = self.question_prefix + " " + row["question"]
+        correct = row["answer"]
+        choices = self.choices[:]
+
+        random.shuffle(choices)
+
+        inp = prepare_ids(self.tokenizer, context, question, choices)
+        tgt = choices.index(correct)
+        K = len(choices)
+
+        return inp, tgt, K
+
+
+class CLUTTERDataWrapper(Dataset):
+
+    def __init__(self, data, tokenizer):
+        self.data = data
+        self.tokenizer = tokenizer
+        self.choices = list(sorted(set(data["target_text"])))
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        row = self.data[index]
+        context = row["story"]
+        q = ast.literal_eval(row["query"])
+        question = f"Based on the story, how is {q[1]} related to {q[0]}?"
+        correct = row["target_text"]
+        choices = self.choices[:]
+
+        random.shuffle(choices)
+
+        inp = prepare_ids(self.tokenizer, context, question, choices)
+        tgt = choices.index(correct)
+        K = len(choices)
+
+        return inp, tgt, K
+
+
+
+class STEPDataWrapper(Dataset):
+
+    def __init__(self, data, tokenizer):
+        self.data = data
+        self.tokenizer = tokenizer
+        self.choices = list(sorted(set(data["label"])))
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        row = self.data[index]
+        context = " ".join(row["story"])
+        question = row["question"]
+        correct = row["label"]
+        choices = self.choices[:]
+
+        random.shuffle(choices)
+
+        inp = prepare_ids(self.tokenizer, context, question, choices)
+        tgt = choices.index(correct)
+        K = len(choices)
+
+        return inp, tgt, K
+
+
+
 def filter_one_jev(row):
     if row["media"]:
         return False
@@ -403,6 +489,25 @@ def filter_jev(ds, state_col: str, max_len: int, kinds=("choice",)):
             and len(r[state_col]) <= max_len
         )
     )
+
+
+def balance_proof_data(ds, seed=0):
+    ds = ds.filter(lambda x: "OWA" in x["id"])
+    ds = ds.filter(lambda x: 2 <= x["QDep"] < 6)
+    unique_values = ds.unique("QDep")
+    co = Counter(ds["QDep"])
+    min_count = min(v for v in co.values())
+
+    balanced = []
+
+    for vc in unique_values:
+        subset = ds.filter(lambda x: x["QDep"] == vc)
+        subset = subset.shuffle(seed=seed).select(range(min_count))
+        balanced.append(subset)
+
+    conc_ = concatenate_datasets(balanced).shuffle(seed=seed)
+
+    return conc_
 
 
 def ds_sample(ds, n: int, seed: int = SEED):
