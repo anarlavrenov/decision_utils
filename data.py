@@ -460,6 +460,45 @@ class STEPDataWrapper(Dataset):
         return inp, tgt, K
 
 
+class RAGTRUTHDataWrapper(Dataset):
+    def __init__(self, data, tokenizer):
+        self.data = data
+        self.tokenizer = tokenizer
+        self.options = ["true", "false"]
+        self.questions = [
+            "Does the response contain any information that is not supported by or contradicts the source?",
+            "Is there anything in the response that is not grounded in the source?",
+            "Does the response include claims that cannot be verified from the source or conflict with it?",
+            "Does the response hallucinate any details that are not present in the source?",
+            "Is any part of the response unsupported by, or inconsistent with, the provided source?"
+        ]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        row = self.data[index]
+
+        context = json.dumps(
+            {"task": row["query"], "source": row["context"], "response": row["output"]},
+            indent=2, ensure_ascii=False
+        )
+
+        label = row["hallucination_labels_processed"]
+        correct = "true" if label["evident_conflict"] > 0 or label["baseless_info"] > 0 else "false"
+
+        keys = self.options[:]
+        random.shuffle(keys)
+
+        question = random.choice(self.questions)
+
+        inp = prepare_ids(self.tokenizer, context, question, keys)
+        tgt = keys.index(correct)
+        K = len(keys)
+
+        return inp, tgt, K
+
+
 
 def filter_one_jev(row):
     if row["media"]:
@@ -512,3 +551,23 @@ def balance_proof_data(ds, min_depth, max_depth, seed=0):
 
 def ds_sample(ds, n: int, seed: int = SEED):
     return ds.shuffle(seed=seed).select(range(min(len(ds), n)))
+
+
+def is_hall(r):
+    l = r["hallucination_labels_processed"]
+    return l["evident_conflict"] > 0 or l["baseless_info"] > 0
+
+def balance_rag_truth(ds, seed: int = SEED):
+    ds = ds.map(lambda r: {"hall": is_hall(r)})
+    parts = []
+
+    for t in ["QA", "Data2txt", "Summary"]:
+        it = ds.filter(lambda r: r["task_type"] == t)
+        tr = it.filter(lambda r: r["hall"] == True)
+        fal = it.filter(lambda r: r["hall"] == False)
+        m = min(len(tr), len(fal))
+
+        parts.append(tr.shuffle(seed=seed).select(range(m)))
+        parts.append(fal.shuffle(seed=seed).select(range(m)))
+
+    return concatenate_datasets(parts).shuffle(seed=seed)
